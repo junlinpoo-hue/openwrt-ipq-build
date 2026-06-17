@@ -204,7 +204,7 @@ jobs:
         # 2. 根据设备执行专用设备添加脚本
         case "$DEVICE" in
           zn_m2)
-            if [ -f "$GITHUB_WORKSPACE/libwrt-6.12.sh" ]; then
+            if [ -f "$GITHUB_WORKSPACE/libwrt-6.12-m2.sh" ]; then
               echo "========================== 添加 ZN-M2 设备支持 =========================="
               chmod +x "$GITHUB_WORKSPACE/libwrt-6.12-m2.sh"
               "$GITHUB_WORKSPACE/libwrt-6.12-m2.sh" "$DEVICE"
