@@ -1,5 +1,5 @@
 #!/bin/bash
-# libwrt.sh - 添加 ZN-M2 支持（兼容 6.6 和 6.12）
+# libwrt.sh - 添加 ZN-M2 支持
 
 set -e
 
