@@ -1,4 +1,4 @@
-name: IPQ60XX-ZN-M2-NOWIFI
+name: openwrt-ipq-6.12-Build
 
 on:
   workflow_dispatch:
@@ -11,14 +11,20 @@ on:
         options:
           - full
           - rebuild
+      device:
+        description: '目标设备'
+        required: true
+        default: 'zn_m2'
+        type: choice
+        options:
+          - zn_m2
+          - aliyun_ap8220
   schedule:
     - cron: '0 19 * * *'
 
 env:
   REPO_URL: https://github.com/qosmio/openwrt-ipq
   REPO_BRANCH: main-nss
-  CONFIG_FILE: configs/ipq60xx-zn_m2-nowifi.config
-  FIRMWARE_TAG: IPQ60XX-ZN-M2-NOWIFI
   TZ: Asia/Shanghai
 
 jobs:
@@ -30,6 +36,7 @@ jobs:
       run: |
         echo "========================== 编译信息 =========================="
         echo "编译类型: ${{ github.event.inputs.build_type || 'scheduled' }}"
+        echo "目标设备: ${{ github.event.inputs.device || 'zn_m2' }}"
         echo ""
         echo "========================== CPU 信息 =========================="
         echo "物理 CPU: $(cat /proc/cpuinfo | grep 'physical id' | sort | uniq | wc -l)"
@@ -50,6 +57,34 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@main
+
+    - name: Generate Variables
+      run: |
+        DEVICE="${{ github.event.inputs.device || 'zn_m2' }}"
+        
+        # 根据设备设置配置文件和标签
+        case "$DEVICE" in
+          zn_m2)
+            CONFIG_FILE="configs/ipq60xx-6.12-nowifi.config"
+            FIRMWARE_TAG="IPQ60XX-ZN-M2-NOWIFI"
+            ;;
+          aliyun_ap8220)
+            CONFIG_FILE="configs/ipq807x-6.12-nowifi.config"
+            FIRMWARE_TAG="IPQ807X-ALIYUN-AP8220-NOWIFI"
+            ;;
+          *)
+            echo "错误：未知设备 $DEVICE"
+            exit 1
+            ;;
+        esac
+        
+        echo "CONFIG_FILE=$CONFIG_FILE" >> $GITHUB_ENV
+        echo "FIRMWARE_TAG=$FIRMWARE_TAG" >> $GITHUB_ENV
+        echo "DEVICE=$DEVICE" >> $GITHUB_ENV
+        
+        echo "设备: $DEVICE"
+        echo "配置文件: $CONFIG_FILE"
+        echo "固件标签: $FIRMWARE_TAG"
 
     - name: Clone Source Code
       run: |
@@ -242,7 +277,7 @@ jobs:
           **OpenWrt Firmware for ${{ env.FIRMWARE_TAG }}**
           
           ### 📋 固件信息
-          - 🖥️ 设备: ZN-M2
+          - 🖥️ 设备: ${{ env.DEVICE }}
           - 🌐 源码: ${{ env.REPO_URL }}
           - 🔄 分支: ${{ env.REPO_BRANCH }}
           - 🐧 内核: ${{ env.VERSION_KERNEL }}
