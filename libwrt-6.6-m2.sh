@@ -1,15 +1,16 @@
 #!/bin/bash
-# libwrt.sh - 添加 ZN-M2 支持
+# libwrt-6.6-m2.sh - 为 qosmio openwrt-ipq 6.6 (24.10-nss) 添加 ZN-M2 支持
 
 set -e
 
-echo "========================== libwrt.sh 开始 =========================="
+echo "========================== libwrt-6.6-m2.sh 开始 =========================="
 echo "当前目录: $(pwd)"
-echo "内核版本: $(grep -oP 'LINUX_KERNEL_HASH-\K[0-9]+\.[0-9]+' target/linux/generic/kernel-* 2>/dev/null || echo 'unknown')"
 
+# 6.6 路径
+IMAGE_MK="target/linux/qualcommax/image/ipq60xx.mk"
+BOARD_DIR="target/linux/qualcommax/ipq60xx/base-files/etc/board.d"
+UPGRADE_DIR="target/linux/qualcommax/ipq60xx/base-files/lib/upgrade"
 DTS_DIR="target/linux/qualcommax/files/arch/arm64/boot/dts/qcom"
-IMAGE_MK="target/linux/qualcommax/image/generic.mk"
-BOARD_DIR="target/linux/qualcommax/base-files/etc/board.d"
 
 echo "========================== 创建 ZN-M2 DTS =========================="
 mkdir -p "$DTS_DIR"
@@ -21,7 +22,6 @@ cat > "$DTS_DIR/ipq6018-zn-m2.dts" << 'DTS_EOF'
 
 #include "ipq6018-512m.dtsi"
 #include "ipq6018-ess.dtsi"
-#include "ipq6018-nss.dtsi"
 #include "ipq6018-cp-cpu.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
@@ -248,8 +248,8 @@ cat > "$DTS_DIR/ipq6018-zn-m2.dts" << 'DTS_EOF'
 };
 DTS_EOF
 
-echo "========================== 修改 generic.mk =========================="
-if ! grep -q "define Device/zn_m2" "$IMAGE_MK" 2>/dev/null; then
+echo "========================== 修改 ipq60xx.mk =========================="
+if [ -f "$IMAGE_MK" ] && ! grep -q "define Device/zn_m2" "$IMAGE_MK" 2>/dev/null; then
     cat >> "$IMAGE_MK" << 'MK_EOF'
 
 define Device/zn_m2
@@ -257,30 +257,51 @@ define Device/zn_m2
 	$(call Device/UbiFit)
 	DEVICE_VENDOR := ZN
 	DEVICE_MODEL := M2
-	SOC := ipq6018
+	BLOCKSIZE := 128k
+	PAGESIZE := 2048
+	SOC := ipq6000
 	DEVICE_DTS_CONFIG := config@cp03-c1
-	KERNEL_SIZE := 8192k
-	IMAGES := sysupgrade.bin
-	IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+	DEVICE_PACKAGES := ipq-wifi-zn_m2
 endef
 TARGET_DEVICES += zn_m2
 MK_EOF
-    echo "已添加 zn_m2 到 generic.mk"
+    echo "已添加 zn_m2 到 $IMAGE_MK"
 else
-    echo "zn_m2 已存在，跳过"
+    echo "zn_m2 已存在或文件不存在，跳过"
 fi
 
 echo "========================== 修改 02_network =========================="
 if [ -f "$BOARD_DIR/02_network" ] && ! grep -q "zn,m2" "$BOARD_DIR/02_network"; then
-    cat >> "$BOARD_DIR/02_network" << 'NET_EOF'
-
-zn,m2)
+    sed -i '/^esac$/i\
+zn,m2)\
 	ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "wan"
-	;;
-NET_EOF
+	;;\
+' "$BOARD_DIR/02_network"
     echo "已添加 zn,m2 到 02_network"
 else
-    echo "02_network 已存在或跳过"
+    echo "02_network 已存在或文件不存在，跳过"
 fi
 
-echo "========================== libwrt.sh 完成 =========================="
+echo "========================== 修改 01_leds =========================="
+if [ -f "$BOARD_DIR/01_leds" ] && ! grep -q "zn,m2)" "$BOARD_DIR/01_leds"; then
+    # 在 esac 前插入 zn,m2 配置
+    sed -i '/^esac$/i\
+zn,m2)\
+	ucidef_set_led_netdev "wan" "WAN" "blue:wan" "wan"\
+	ucidef_set_led_netdev "lan" "LAN" "blue:lan" "br-lan"\
+	;;\
+' "$BOARD_DIR/01_leds"
+    echo "已添加 zn,m2 到 01_leds"
+else
+    echo "01_leds 已存在或文件不存在，跳过"
+fi
+
+echo "========================== 修改 platform.sh =========================="
+if [ -f "$UPGRADE_DIR/platform.sh" ] && ! grep -q "zn,m2" "$UPGRADE_DIR/platform.sh"; then
+    sed -i '/netgear,wax214)/i\	zn,m2|\\' "$UPGRADE_DIR/platform.sh"
+    echo "已添加 zn,m2 到 platform.sh"
+else
+    echo "platform.sh 已存在或文件不存在，跳过"
+fi
+
+echo "========================== libwrt-6.12.sh 完成 =========================="
