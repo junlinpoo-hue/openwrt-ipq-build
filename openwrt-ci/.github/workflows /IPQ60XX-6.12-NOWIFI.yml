@@ -15,7 +15,7 @@ on:
     - cron: '0 19 * * *'
 
 env:
-  REPO_URL: https://github.com/junlinpoo-hue/openwrt-ipq.git
+  REPO_URL: https://github.com/qosmio/openwrt-ipq
   REPO_BRANCH: main-nss
   CONFIG_FILE: configs/ipq60xx-zn_m2-nowifi.config
   FIRMWARE_TAG: IPQ60XX-ZN-M2-NOWIFI
