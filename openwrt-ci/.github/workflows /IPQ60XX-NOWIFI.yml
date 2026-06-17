@@ -1,1 +1,256 @@
+name: IPQ60XX-ZN-M2-NOWIFI
 
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: '编译类型'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - rebuild
+  schedule:
+    - cron: '0 19 * * *'
+
+env:
+  REPO_URL: https://github.com/junlinpoo-hue/openwrt-ipq.git
+  REPO_BRANCH: main-nss
+  CONFIG_FILE: configs/ipq60xx-zn_m2-nowifi.config
+  FIRMWARE_TAG: IPQ60XX-ZN-M2-NOWIFI
+  TZ: Asia/Shanghai
+
+jobs:
+  Build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Check Server Performance
+      run: |
+        echo "========================== 编译信息 =========================="
+        echo "编译类型: ${{ github.event.inputs.build_type || 'scheduled' }}"
+        echo ""
+        echo "========================== CPU 信息 =========================="
+        echo "物理 CPU: $(cat /proc/cpuinfo | grep 'physical id' | sort | uniq | wc -l)"
+        echo "核心信息: $(cat /proc/cpuinfo | grep name | cut -f2 -d: | uniq -c)"
+        echo ""
+        echo "========================== 内存信息 =========================="
+        free -h
+        echo ""
+        echo "========================== 磁盘信息 =========================="
+        df -hT
+
+    - name: Maximize Build Space
+      uses: easimon/maximize-build-space@master
+      with:
+        swap-size-mb: 4096
+        temp-reserve-mb: 100
+        root-reserve-mb: 2048
+
+    - name: Checkout
+      uses: actions/checkout@main
+
+    - name: Clone Source Code
+      run: |
+        echo "========================== 克隆源码 =========================="
+        df -hT $GITHUB_WORKSPACE
+        
+        git clone --depth 1 --single-branch -b $REPO_BRANCH $REPO_URL openwrt
+        cd openwrt
+        echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
+        
+        VERSION_INFO=$(git show -s --date=short --format="作者: %an<br/>时间: %cd<br/>内容: %s<br/>hash: %H")
+        echo "VERSION_INFO=$VERSION_INFO" >> $GITHUB_ENV
+        
+        if [ -f "target/linux/generic/kernel-6.12" ]; then
+          VERSION_KERNEL=$(grep -oP 'LINUX_KERNEL_HASH-\K[0-9]+\.[0-9]+\.[0-9]+' target/linux/generic/kernel-6.12)
+        elif [ -f "target/linux/generic/kernel-6.6" ]; then
+          VERSION_KERNEL=$(grep -oP 'LINUX_KERNEL_HASH-\K[0-9]+\.[0-9]+\.[0-9]+' target/linux/generic/kernel-6.6)
+        else
+          VERSION_KERNEL="unknown"
+        fi
+        echo "VERSION_KERNEL=$VERSION_KERNEL" >> $GITHUB_ENV
+        
+        echo "源码路径: $PWD"
+        echo "内核版本: $VERSION_KERNEL"
+
+    - name: Initialize Build Environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        echo "========================== 清理系统 =========================="
+        docker images -q | xargs -r docker rmi -f 2>/dev/null || true
+        
+        sudo rm -rf /usr/share/dotnet \
+                    /etc/apt/sources.list.d/* \
+                    /usr/local/lib/android \
+                    /opt/ghc \
+                    /usr/local/share/boost \
+                    "$AGENT_TOOLSDIRECTORY" \
+                    /usr/local/lib/node_modules
+        
+        echo "========================== 安装依赖 =========================="
+        sudo apt-get update -y
+        sudo apt-get install -y \
+          ack antlr3 asciidoc autoconf automake autopoint binutils bison \
+          build-essential bzip2 ccache cmake cpio curl device-tree-compiler \
+          fastjar flex gawk gettext gcc-multilib g++-multilib git gperf \
+          haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev \
+          libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev \
+          libncursesw5-dev libreadline-dev libfuse-dev libssl-dev libtool \
+          lrzsz genisoimage msmtp nano ninja-build p7zip p7zip-full patch \
+          pkgconf python3 python3-pip libpython3-dev qemu-utils rsync scons \
+          squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim \
+          wget xmlto xxd zlib1g-dev dos2unix
+        
+        sudo apt-get autoremove -y --purge
+        sudo apt-get autoclean
+        sudo apt-get clean
+        sudo timedatectl set-timezone "$TZ"
+        
+        echo "========================== 验证工具 =========================="
+        gcc --version | head -1
+        python3 --version
+        git --version
+        make --version | head -1
+
+    - name: Update Feeds
+      run: |
+        cd $OPENWRT_PATH
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
+    - name: Load Configuration
+      run: |
+        cd $OPENWRT_PATH
+        
+        if [ -f "$GITHUB_WORKSPACE/$CONFIG_FILE" ]; then
+          cp "$GITHUB_WORKSPACE/$CONFIG_FILE" .config
+          echo "使用配置文件: $CONFIG_FILE"
+        else
+          echo "错误：找不到配置文件 $CONFIG_FILE"
+          exit 1
+        fi
+        
+        make defconfig V=s
+        
+        DEVICE_TARGET=$(grep CONFIG_TARGET_BOARD .config | awk -F '"' '{print $2}')
+        DEVICE_SUBTARGET=$(grep CONFIG_TARGET_SUBTARGET .config | awk -F '"' '{print $2}')
+        SOURCE_REPO=$(echo $REPO_URL | awk -F '/' '{print $NF}')
+        
+        echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
+        echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_ENV
+        echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
+        
+        echo "目标平台: $DEVICE_TARGET/$DEVICE_SUBTARGET"
+
+    - name: Cache Toolchain
+      uses: HiGarfield/cachewrtbuild@main
+      with:
+        ccache: false
+        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
+        prefix: ${{ env.OPENWRT_PATH }}
+
+    - name: Run DIY Script
+      run: |
+        cd $OPENWRT_PATH
+        
+        for script in "$GITHUB_WORKSPACE/libwrt.sh" "$GITHUB_WORKSPACE/diy-script.sh"; do
+          if [ -f "$script" ]; then
+            echo "执行 DIY 脚本: $script"
+            chmod +x "$script"
+            "$script"
+            break
+          fi
+        done
+        
+        if [ -d "$GITHUB_WORKSPACE/files" ]; then
+          cp -r "$GITHUB_WORKSPACE/files" .
+          echo "已复制自定义 files 目录"
+        fi
+
+    - name: Download Packages
+      run: |
+        cd $OPENWRT_PATH
+        make defconfig
+        make download -j$(nproc)
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
+        echo "下载完成"
+
+    - name: Compile Firmware
+      id: compile
+      run: |
+        cd $OPENWRT_PATH
+        
+        if [ "${{ github.event.inputs.build_type }}" = "full" ] || [ -z "${{ github.event.inputs.build_type }}" ]; then
+          echo "首次编译：使用单线程"
+          make -j1 V=s
+        else
+          echo "二次编译：使用多线程"
+          make -j$(nproc) || make -j1 V=s
+        fi
+        
+        echo "status=success" >> $GITHUB_OUTPUT
+        echo "DATE=$(date +"%Y-%m-%d %H:%M:%S")" >> $GITHUB_ENV
+        echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_ENV
+        echo "编译成功"
+
+    - name: Check Space Usage
+      if: (!cancelled())
+      run: df -hT
+
+    - name: Organize Files
+      if: steps.compile.outputs.status == 'success'
+      run: |
+        cd $OPENWRT_PATH/bin/targets/*/*
+        
+        cat sha256sums 2>/dev/null || true
+        cp $OPENWRT_PATH/.config build.config
+        
+        mkdir -p packages
+        mv -f $OPENWRT_PATH/bin/packages/*/*/*.apk packages/ 2>/dev/null || true
+        tar -zcf Packages.tar.gz packages/ 2>/dev/null || true
+        rm -rf packages/ feeds.buildinfo version.buildinfo
+        
+        ACTUAL_KERNEL=$(find . -name "*.manifest" -exec grep -oP '^kernel - \K.*?(?=~|-\d+-)' {} \; | head -1)
+        if [ -n "$ACTUAL_KERNEL" ]; then
+          echo "VERSION_KERNEL=$ACTUAL_KERNEL" >> $GITHUB_ENV
+        fi
+        
+        echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
+
+    - name: Upload to Artifact
+      if: steps.compile.outputs.status == 'success'
+      uses: actions/upload-artifact@main
+      with:
+        name: ${{ env.SOURCE_REPO }}-${{ env.FIRMWARE_TAG }}-${{ env.FILE_DATE }}
+        path: ${{ env.FIRMWARE_PATH }}
+        retention-days: 7
+
+    - name: Release Firmware
+      if: steps.compile.outputs.status == 'success'
+      uses: ncipollo/release-action@v1
+      with:
+        name: R${{ env.DATE }} ${{ env.FIRMWARE_TAG }}
+        allowUpdates: true
+        tag: ${{ env.FIRMWARE_TAG }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        artifacts: ${{ env.FIRMWARE_PATH }}/*
+        body: |
+          **OpenWrt Firmware for ${{ env.FIRMWARE_TAG }}**
+          
+          ### 📋 固件信息
+          - 🖥️ 设备: ZN-M2
+          - 🌐 源码: ${{ env.REPO_URL }}
+          - 🔄 分支: ${{ env.REPO_BRANCH }}
+          - 🐧 内核: ${{ env.VERSION_KERNEL }}
+          - 📅 编译时间: ${{ env.DATE }}
+          
+          ### 📝 源码更新记录
+          ${{ env.VERSION_INFO }}
+          
+          ### ⚙️ 默认配置
+          - IP: 192.168.1.1
+          - 密码: password
