@@ -281,13 +281,13 @@ fi
 
 echo "========================== 修改 01_leds =========================="
 if [ -f "$BOARD_DIR/01_leds" ] && ! grep -q "zn,m2)" "$BOARD_DIR/01_leds"; then
-    cat >> "$BOARD_DIR/01_leds" << 'LED_EOF'
-
-zn,m2)
-	ucidef_set_led_netdev "wan" "WAN" "blue:wan" "wan"
-	ucidef_set_led_netdev "lan" "LAN" "blue:lan" "br-lan"
-	;;
-LED_EOF
+    # 在 esac 前插入 zn,m2 配置
+    sed -i '/^esac$/i\
+zn,m2)\
+	ucidef_set_led_netdev "wan" "WAN" "blue:wan" "wan"\
+	ucidef_set_led_netdev "lan" "LAN" "blue:lan" "br-lan"\
+	;;\
+' "$BOARD_DIR/01_leds"
     echo "已添加 zn,m2 到 01_leds"
 else
     echo "01_leds 已存在或文件不存在，跳过"
