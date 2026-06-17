@@ -191,6 +191,7 @@ jobs:
       run: |
         cd $OPENWRT_PATH
         
+               # 1. 执行通用 DIY 脚本（如果存在）
         for script in "$GITHUB_WORKSPACE/libwrt.sh" "$GITHUB_WORKSPACE/diy-script.sh"; do
           if [ -f "$script" ]; then
             echo "执行 DIY 脚本: $script"
@@ -199,7 +200,28 @@ jobs:
             break
           fi
         done
-        
+
+        # 2. 根据设备执行专用设备添加脚本
+        case "$DEVICE" in
+          zn_m2)
+            if [ -f "$GITHUB_WORKSPACE/libwrt-6.12.sh" ]; then
+              echo "========================== 添加 ZN-M2 设备支持 =========================="
+              chmod +x "$GITHUB_WORKSPACE/libwrt-6.12-m2.sh"
+              "$GITHUB_WORKSPACE/libwrt-6.12-m2.sh" "$DEVICE"
+            else
+              echo "警告：未找到 libwrt-6.12-m2.sh，ZN-M2 设备支持可能不完整"
+            fi
+            ;;
+          aliyun_ap8220)
+            if [ -f "$GITHUB_WORKSPACE/libwrt-ap8220.sh" ]; then
+              echo "========================== 添加 AP8220 设备支持 =========================="
+              chmod +x "$GITHUB_WORKSPACE/libwrt-ap8220.sh"
+              "$GITHUB_WORKSPACE/libwrt-ap8220.sh" "$DEVICE"
+            fi
+            ;;
+        esac
+
+        # 3. 复制自定义 files 目录
         if [ -d "$GITHUB_WORKSPACE/files" ]; then
           cp -r "$GITHUB_WORKSPACE/files" .
           echo "已复制自定义 files 目录"
