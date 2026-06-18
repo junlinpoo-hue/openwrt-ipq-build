@@ -269,7 +269,6 @@ define Device/zn_m2
 	BLOCKSIZE := 128k
 	PAGESIZE := 2048
 	SOC := ipq6000
-	DEVICE_DTS := ipq6018-zn-m2
 	DEVICE_DTS_CONFIG := config@cp03-c1
 	DEVICE_PACKAGES := ipq-wifi-zn_m2
 endef
@@ -320,35 +319,5 @@ sed -i '/$(eval $(call generate-ipq-wifi-package,zyxel_scr50axe,Zyxel SCR50AXE))
 $(eval $(call generate-ipq-wifi-package,zn_m2,ZN M2))' "$IPQWIFI_MK"
 
 echo "ZN-M2 added to ipq-wifi Makefile"
-
-echo "========================== 复制 BDF 文件 =========================="
-mkdir -p package/firmware/ipq-wifi/src
-
-# 尝试多个可能的路径（适应不同执行环境）
-BDF_COPIED=false
-for bdf_path in \
-    "board-zn_m2.ipq6018" \
-    "../board-zn_m2.ipq6018" \
-    "../../board-zn_m2.ipq6018" \
-    "/mnt/agents/upload/board-zn_m2.ipq6018"
-do
-    if [ -f "$bdf_path" ]; then
-        cp "$bdf_path" package/firmware/ipq-wifi/src/
-        BDF_COPIED=true
-        echo "已从 $bdf_path 复制 BDF"
-        break
-    fi
-done
-
-if [ "$BDF_COPIED" = false ]; then
-    echo "错误: 找不到 board-zn_m2.ipq6018 文件"
-    echo "请在脚本执行前将 BDF 文件放在以下位置之一:"
-    echo "  - $(pwd)/board-zn_m2.ipq6018"
-    echo "  - $(pwd)/../board-zn_m2.ipq6018"
-    exit 1
-fi
-
-echo "BDF prepared:"
-ls -la package/firmware/ipq-wifi/src/board-zn_m2.ipq6018
 
 echo "========================== libwrt-6.12.sh 完成 =========================="
