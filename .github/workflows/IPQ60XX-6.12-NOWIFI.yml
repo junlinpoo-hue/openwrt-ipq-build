@@ -112,7 +112,12 @@ jobs:
         echo "源码路径: $PWD"
         echo "内核版本: $VERSION_KERNEL"
 
-    # ========== 关键修复：先添加设备支持，再更新 feeds 和加载配置 ==========
+    - name: Update Feeds
+      run: |
+        cd $OPENWRT_PATH
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
     - name: Add Device Support
       run: |
         cd $OPENWRT_PATH
@@ -140,12 +145,6 @@ jobs:
             fi
             ;;
         esac
-
-    - name: Update Feeds
-      run: |
-        cd $OPENWRT_PATH
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
 
     - name: Load Configuration
       run: |
@@ -199,13 +198,6 @@ jobs:
             ;;
         esac
 
-    - name: Cache Toolchain
-      uses: HiGarfield/cachewrtbuild@main
-      with:
-        ccache: false
-        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
-        prefix: ${{ env.OPENWRT_PATH }}
-
     - name: Run DIY Script
       run: |
         cd $OPENWRT_PATH
@@ -226,11 +218,25 @@ jobs:
           echo "已复制自定义 files 目录"
         fi
 
+    - name: Cache Toolchain
+      uses: HiGarfield/cachewrtbuild@main
+      with:
+        ccache: false
+        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
+        prefix: ${{ env.OPENWRT_PATH }}
+
     - name: Download Packages
       run: |
         cd $OPENWRT_PATH
+        
+        # 修复：清理可能损坏的 mbedtls 缓存
+        echo "========================== 清理 mbedtls 缓存 =========================="
+        rm -f dl/mbedtls-*.tar.gz
+        rm -rf build_dir/target-*/mbedtls-*
+        rm -f staging_dir/target-*/stamp/.mbedtls_*
+        
         make defconfig
-        make download -j$(nproc)
+        make download -j$(nproc) V=s
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
         echo "下载完成"
@@ -239,6 +245,12 @@ jobs:
       id: compile
       run: |
         cd $OPENWRT_PATH
+        
+        # rebuild 时清理旧编译产物
+        if [ "${{ github.event.inputs.build_type }}" = "rebuild" ]; then
+          echo "清理旧编译产物..."
+          make clean
+        fi
         
         if [ "${{ github.event.inputs.build_type }}" = "full" ] || [ -z "${{ github.event.inputs.build_type }}" ]; then
           echo "首次编译：使用单线程"
