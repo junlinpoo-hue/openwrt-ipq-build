@@ -1,9 +1,9 @@
 #!/bin/bash
-# libwrt-6.12.sh - 为 qosmio openwrt-ipq 6.12 (main-nss) 添加 ZN-M2 支持
+# libwrt-6.12-m2.sh - 为 qosmio openwrt-ipq 6.12 (main-nss) 添加 ZN-M2 支持
 
 set -e
 
-echo "========================== libwrt-6.12.sh 开始 =========================="
+echo "========================== libwrt-6.12-m2.sh 开始 =========================="
 echo "当前目录: $(pwd)"
 
 # 6.12 路径
