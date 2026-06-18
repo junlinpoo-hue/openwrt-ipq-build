@@ -249,6 +249,12 @@ cat > "$DTS_DIR/ipq6018-zn-m2.dts" << 'DTS_EOF'
 };
 DTS_EOF
 
+echo "========================== 创建 DTS 编译替身（防撞车） =========================="
+# 1. 满足你显式指定的正确名称（规范化）
+cp "$DTS_DIR/ipq6018-zn-m2.dts" "$DTS_DIR/ipq6000-zn-m2.dts"
+# 2. 补齐上游源码里写错/缺失的 m2 文件，彻底解决 cc1: fatal error 报错
+cp "$DTS_DIR/ipq6018-zn-m2.dts" "$DTS_DIR/ipq6000-m2.dts"
+
 echo "========================== 修改 ipq60xx.mk =========================="
 if [ -f "$IMAGE_MK" ] && ! grep -q "define Device/zn_m2" "$IMAGE_MK" 2>/dev/null; then
     cat >> "$IMAGE_MK" << 'MK_EOF'
@@ -261,6 +267,7 @@ define Device/zn_m2
 	BLOCKSIZE := 128k
 	PAGESIZE := 2048
 	SOC := ipq6000
+	DEVICE_DTS := ipq6018-zn-m2
 	DEVICE_DTS_CONFIG := config@cp03-c1
 	DEVICE_PACKAGES := ipq-wifi-zn_m2
 endef
