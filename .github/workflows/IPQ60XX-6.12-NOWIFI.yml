@@ -211,7 +211,7 @@ jobs:
         cd $OPENWRT_PATH
         
         # 执行通用 DIY 脚本（如果存在）
-        for script in "$GITHUB_WORKSPACE/libwrt.sh" "$GITHUB_WORKSPACE/diy-script.sh"; do
+        for script in "$GITHUB_WORKSPACE/libwrt-6.12.sh" "$GITHUB_WORKSPACE/diy-script.sh"; do
           if [ -f "$script" ]; then
             echo "执行 DIY 脚本: $script"
             chmod +x "$script"
