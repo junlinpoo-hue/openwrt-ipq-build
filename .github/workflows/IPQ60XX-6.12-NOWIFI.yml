@@ -1,5 +1,7 @@
 name: openwrt-ipq-6.12-Build
-
+permissions:
+  contents: write    # 允许创建 Release
+  actions: write     # 允许上传 Artifact
 on:
   workflow_dispatch:
     inputs:
