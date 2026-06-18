@@ -112,45 +112,34 @@ jobs:
         echo "源码路径: $PWD"
         echo "内核版本: $VERSION_KERNEL"
 
-    - name: Initialize Build Environment
-      env:
-        DEBIAN_FRONTEND: noninteractive
+    # ========== 关键修复：先添加设备支持，再更新 feeds 和加载配置 ==========
+    - name: Add Device Support
       run: |
-        echo "========================== 清理系统 =========================="
-        docker images -q | xargs -r docker rmi -f 2>/dev/null || true
+        cd $OPENWRT_PATH
         
-        sudo rm -rf /usr/share/dotnet \
-                    /etc/apt/sources.list.d/* \
-                    /usr/local/lib/android \
-                    /opt/ghc \
-                    /usr/local/share/boost \
-                    "$AGENT_TOOLSDIRECTORY" \
-                    /usr/local/lib/node_modules
+        echo "========================== 添加设备支持 =========================="
         
-        echo "========================== 安装依赖 =========================="
-        sudo apt-get update -y
-        sudo apt-get install -y \
-          ack antlr3 asciidoc autoconf automake autopoint binutils bison \
-          build-essential bzip2 ccache cmake cpio curl device-tree-compiler \
-          fastjar flex gawk gettext gcc-multilib g++-multilib git gperf \
-          haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev \
-          libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev \
-          libncursesw5-dev libreadline-dev libfuse-dev libssl-dev libtool \
-          lrzsz genisoimage msmtp nano ninja-build p7zip p7zip-full patch \
-          pkgconf python3 python3-pip libpython3-dev qemu-utils rsync scons \
-          squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim \
-          wget xmlto xxd zlib1g-dev dos2unix
-        
-        sudo apt-get autoremove -y --purge
-        sudo apt-get autoclean
-        sudo apt-get clean
-        sudo timedatectl set-timezone "$TZ"
-        
-        echo "========================== 验证工具 =========================="
-        gcc --version | head -1
-        python3 --version
-        git --version
-        make --version | head -1
+        # 根据设备执行专用设备添加脚本
+        case "$DEVICE" in
+          zn_m2)
+            if [ -f "$GITHUB_WORKSPACE/libwrt-6.12-m2.sh" ]; then
+              echo "========================== 添加 ZN-M2 设备支持 =========================="
+              chmod +x "$GITHUB_WORKSPACE/libwrt-6.12-m2.sh"
+              "$GITHUB_WORKSPACE/libwrt-6.12-m2.sh" "$DEVICE"
+            else
+              echo "警告：未找到 libwrt-6.12-m2.sh，ZN-M2 设备支持可能不完整"
+            fi
+            ;;
+          aliyun_ap8220)
+            if [ -f "$GITHUB_WORKSPACE/libwrt-ap8220.sh" ]; then
+              echo "========================== 添加 AP8220 设备支持 =========================="
+              chmod +x "$GITHUB_WORKSPACE/libwrt-ap8220.sh"
+              "$GITHUB_WORKSPACE/libwrt-ap8220.sh" "$DEVICE"
+            else
+              echo "警告：未找到 libwrt-ap8220.sh，AP8220 设备支持可能不完整"
+            fi
+            ;;
+        esac
 
     - name: Update Feeds
       run: |
@@ -182,6 +171,34 @@ jobs:
         
         echo "目标平台: $DEVICE_TARGET/$DEVICE_SUBTARGET"
 
+    - name: Verify Device Selection
+      run: |
+        cd $OPENWRT_PATH
+        echo "=== 验证设备选择 ==="
+        grep "CONFIG_TARGET.*DEVICE_" .config | grep "=y" || true
+        
+        # 根据设备验证
+        case "$DEVICE" in
+          zn_m2)
+            if grep -q "CONFIG_TARGET_qualcommax_ipq60xx_DEVICE_zn_m2=y" .config; then
+              echo "✅ ZN-M2 设备已正确选择"
+            else
+              echo "❌ 错误：ZN-M2 设备未正确选择"
+              grep "CONFIG_TARGET_qualcommax_ipq60xx_DEVICE_" .config | grep "=y"
+              exit 1
+            fi
+            ;;
+          aliyun_ap8220)
+            if grep -q "CONFIG_TARGET_qualcommax_ipq807x_DEVICE_aliyun_ap8220=y" .config; then
+              echo "✅ AP8220 设备已正确选择"
+            else
+              echo "❌ 错误：AP8220 设备未正确选择"
+              grep "CONFIG_TARGET_qualcommax_ipq807x_DEVICE_" .config | grep "=y"
+              exit 1
+            fi
+            ;;
+        esac
+
     - name: Cache Toolchain
       uses: HiGarfield/cachewrtbuild@main
       with:
@@ -193,7 +210,7 @@ jobs:
       run: |
         cd $OPENWRT_PATH
         
-               # 1. 执行通用 DIY 脚本（如果存在）
+        # 执行通用 DIY 脚本（如果存在）
         for script in "$GITHUB_WORKSPACE/libwrt.sh" "$GITHUB_WORKSPACE/diy-script.sh"; do
           if [ -f "$script" ]; then
             echo "执行 DIY 脚本: $script"
@@ -203,27 +220,7 @@ jobs:
           fi
         done
 
-        # 2. 根据设备执行专用设备添加脚本
-        case "$DEVICE" in
-          zn_m2)
-            if [ -f "$GITHUB_WORKSPACE/libwrt-6.12-m2.sh" ]; then
-              echo "========================== 添加 ZN-M2 设备支持 =========================="
-              chmod +x "$GITHUB_WORKSPACE/libwrt-6.12-m2.sh"
-              "$GITHUB_WORKSPACE/libwrt-6.12-m2.sh" "$DEVICE"
-            else
-              echo "警告：未找到 libwrt-6.12-m2.sh，ZN-M2 设备支持可能不完整"
-            fi
-            ;;
-          aliyun_ap8220)
-            if [ -f "$GITHUB_WORKSPACE/libwrt-ap8220.sh" ]; then
-              echo "========================== 添加 AP8220 设备支持 =========================="
-              chmod +x "$GITHUB_WORKSPACE/libwrt-ap8220.sh"
-              "$GITHUB_WORKSPACE/libwrt-ap8220.sh" "$DEVICE"
-            fi
-            ;;
-        esac
-
-        # 3. 复制自定义 files 目录
+        # 复制自定义 files 目录
         if [ -d "$GITHUB_WORKSPACE/files" ]; then
           cp -r "$GITHUB_WORKSPACE/files" .
           echo "已复制自定义 files 目录"
