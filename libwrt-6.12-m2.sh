@@ -320,4 +320,4 @@ $(eval $(call generate-ipq-wifi-package,zn_m2,ZN M2))' "$IPQWIFI_MK"
 
 echo "ZN-M2 added to ipq-wifi Makefile"
 
-echo "========================== libwrt-6.12.sh 完成 =========================="
+echo "========================== libwrt-6.12-m2.sh 完成 =========================="
