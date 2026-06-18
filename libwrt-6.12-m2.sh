@@ -11,6 +11,7 @@ IMAGE_MK="target/linux/qualcommax/image/ipq60xx.mk"
 BOARD_DIR="target/linux/qualcommax/ipq60xx/base-files/etc/board.d"
 UPGRADE_DIR="target/linux/qualcommax/ipq60xx/base-files/lib/upgrade"
 DTS_DIR="target/linux/qualcommax/dts"
+IPQWIFI_MK="package/firmware/ipq-wifi/Makefile"
 
 echo "========================== 创建 ZN-M2 DTS =========================="
 mkdir -p "$DTS_DIR"
@@ -307,5 +308,20 @@ if [ -f "$UPGRADE_DIR/platform.sh" ] && ! grep -q "zn,m2" "$UPGRADE_DIR/platform
 else
     echo "platform.sh 已存在或文件不存在，跳过"
 fi
+
+# 添加 ZN-M2 到 ipq-wifi echo "========================== 修改 platform.sh =========================="
+
+echo "========================== 修改 Makefile  =========================="
+# 1. 在 ALLWIFIBOARDS 列表中，zyxel_scr50axe 行后面添加 zn_m2 
+# 先给 zyxel_scr50axe 末尾加反斜杠（如果原来没有）
+sed -i 's/^    zyxel_scr50axe$/    zyxel_scr50axe \\/' "$IPQWIFI_MK"
+# 再追加 zn_m2（最后一行，末尾不加 \）
+sed -i '/^    zyxel_scr50axe \\$/a\    zn_m2' "$IPQWIFI_MK"
+
+# 2. 在 zyxel_scr50axe 的 generate 调用后面添加 zn_m2 的 generate 调用
+sed -i '/$(eval $(call generate-ipq-wifi-package,zyxel_scr50axe,Zyxel SCR50AXE))/a\
+$(eval $(call generate-ipq-wifi-package,zn_m2,ZN M2))' "$IPQWIFI_MK"
+
+echo "ZN-M2 added to ipq-wifi Makefile"
 
 echo "========================== libwrt-6.12.sh 完成 =========================="
