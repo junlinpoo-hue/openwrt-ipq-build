@@ -13,6 +13,7 @@ UPGRADE_DIR="target/linux/qualcommax/ipq60xx/base-files/lib/upgrade"
 DTS_DIR="target/linux/qualcommax/dts"
 IPQWIFI_MK="package/firmware/ipq-wifi/Makefile"
 
+
 echo "========================== 创建 ZN-M2 DTS =========================="
 mkdir -p "$DTS_DIR"
 
@@ -309,19 +310,45 @@ else
     echo "platform.sh 已存在或文件不存在，跳过"
 fi
 
-# 添加 ZN-M2 到 ipq-wifi echo "========================== 修改 platform.sh =========================="
-
 echo "========================== 修改 Makefile  =========================="
 # 1. 在 ALLWIFIBOARDS 列表中，zyxel_scr50axe 行后面添加 zn_m2 
-# 先给 zyxel_scr50axe 末尾加反斜杠（如果原来没有）
-sed -i 's/^    zyxel_scr50axe$/    zyxel_scr50axe \\/' "$IPQWIFI_MK"
-# 再追加 zn_m2（最后一行，末尾不加 \）
-sed -i '/^    zyxel_scr50axe \\$/a\    zn_m2' "$IPQWIFI_MK"
+sed -i 's/^[[:space:]]*zyxel_scr50axe[[:space:]]*$/    zyxel_scr50axe \\/' "$IPQWIFI_MK"
+sed -i '/^[[:space:]]*zyxel_scr50axe \\$/a\    zn_m2' "$IPQWIFI_MK"
 
 # 2. 在 zyxel_scr50axe 的 generate 调用后面添加 zn_m2 的 generate 调用
 sed -i '/$(eval $(call generate-ipq-wifi-package,zyxel_scr50axe,Zyxel SCR50AXE))/a\
 $(eval $(call generate-ipq-wifi-package,zn_m2,ZN M2))' "$IPQWIFI_MK"
 
 echo "ZN-M2 added to ipq-wifi Makefile"
+
+echo "========================== 复制 BDF 文件 =========================="
+mkdir -p package/firmware/ipq-wifi/src
+
+# 尝试多个可能的路径（适应不同执行环境）
+BDF_COPIED=false
+for bdf_path in \
+    "board-zn_m2.ipq6018" \
+    "../board-zn_m2.ipq6018" \
+    "../../board-zn_m2.ipq6018" \
+    "/mnt/agents/upload/board-zn_m2.ipq6018"
+do
+    if [ -f "$bdf_path" ]; then
+        cp "$bdf_path" package/firmware/ipq-wifi/src/
+        BDF_COPIED=true
+        echo "已从 $bdf_path 复制 BDF"
+        break
+    fi
+done
+
+if [ "$BDF_COPIED" = false ]; then
+    echo "错误: 找不到 board-zn_m2.ipq6018 文件"
+    echo "请在脚本执行前将 BDF 文件放在以下位置之一:"
+    echo "  - $(pwd)/board-zn_m2.ipq6018"
+    echo "  - $(pwd)/../board-zn_m2.ipq6018"
+    exit 1
+fi
+
+echo "BDF prepared:"
+ls -la package/firmware/ipq-wifi/src/board-zn_m2.ipq6018
 
 echo "========================== libwrt-6.12.sh 完成 =========================="
