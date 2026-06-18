@@ -24,7 +24,6 @@ cat > "$DTS_DIR/ipq6018-zn-m2.dts" << 'DTS_EOF'
 
 #include "ipq6018-512m.dtsi"
 #include "ipq6018-ess.dtsi"
-#include "ipq6018-nss.dtsi"
 #include "ipq6018-cp-cpu.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
@@ -269,7 +268,6 @@ define Device/zn_m2
 	BLOCKSIZE := 128k
 	PAGESIZE := 2048
 	SOC := ipq6000
-	DEVICE_DTS := ipq6018-zn-m2
 	DEVICE_DTS_CONFIG := config@cp03-c1
 	DEVICE_PACKAGES := ipq-wifi-zn_m2
 endef
