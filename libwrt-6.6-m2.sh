@@ -328,12 +328,16 @@ else
 fi
 
 echo "========================== 修改 Makefile  =========================="
-# 1. 在 ALLWIFIBOARDS 列表中，zyxel_scr50axe 行后面添加 zn_m2 
-sed -i 's/^[[:space:]]*zyxel_scr50axe[[:space:]]*$/    zyxel_scr50axe \\/' "$IPQWIFI_MK"
-sed -i '/^[[:space:]]*zyxel_scr50axe \\$/a\    zn_m2' "$IPQWIFI_MK"
+IPQWIFI_MK="package/firmware/ipq-wifi/Makefile"
 
-# 2. 在 zyxel_scr50axe 的 generate 调用后面添加 zn_m2 的 generate 调用
-sed -i '/$(eval $(call generate-ipq-wifi-package,zyxel_scr50axe,Zyxel SCR50AXE))/a\
+# 1. 先给最后一项 zyxel_nbg7815 加上反斜杠（用 Tab 缩进）
+sed -i 's/^[[:space:]]*zyxel_nbg7815[[:space:]]*$/\tzyxel_nbg7815 \\/' "$IPQWIFI_MK"
+
+# 2. 在 zyxel_nbg7815 行后面添加 zn_m2（用 Tab 缩进）
+sed -i '/^[[:space:]]*zyxel_nbg7815 \\$/a\\tzn_m2' "$IPQWIFI_MK"
+
+# 3. 在 generate 调用后面添加 zn_m2 的 generate
+sed -i '/$(eval $(call generate-ipq-wifi-package,zyxel_nbg7815,Zyxel NBG7815))/a\
 $(eval $(call generate-ipq-wifi-package,zn_m2,ZN M2))' "$IPQWIFI_MK"
 
 echo "ZN-M2 added to ipq-wifi Makefile"
