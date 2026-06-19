@@ -127,21 +127,21 @@ jobs:
         # 根据设备执行专用设备添加脚本
         case "$DEVICE" in
           zn_m2)
-            if [ -f "$GITHUB_WORKSPACE/m2/libwrt-6.12-m2.sh" ]; then
+            if [ -f "$GITHUB_WORKSPACE/m2/libwrt-6.6-m2.sh" ]; then
               echo "========================== 添加 ZN-M2 设备支持 =========================="
-              chmod +x "$GITHUB_WORKSPACE/m2/libwrt-6.12-m2.sh"
-              "$GITHUB_WORKSPACE/m2/libwrt-6.12-m2.sh" "$DEVICE"
+              chmod +x "$GITHUB_WORKSPACE/m2/libwrt-6.6-m2.sh"
+              "$GITHUB_WORKSPACE/m2/libwrt-6.6-m2.sh" "$DEVICE"
             else
-              echo "警告：未找到 libwrt-6.12-m2.sh，ZN-M2 设备支持可能不完整"
+              echo "警告：未找到 libwrt-6.6-m2.sh，ZN-M2 设备支持可能不完整"
             fi
             ;;
           aliyun_ap8220)
-            if [ -f "$GITHUB_WORKSPACE/ap8220/libwrt-ap8220.sh" ]; then
+            if [ -f "$GITHUB_WORKSPACE/ap8220/libwrt-6.6-ap8220.sh" ]; then
               echo "========================== 添加 AP8220 设备支持 =========================="
-              chmod +x "$GITHUB_WORKSPACE/ap8220/libwrt-ap8220.sh"
-              "$GITHUB_WORKSPACE/ap8220/libwrt-ap8220.sh" "$DEVICE"
+              chmod +x "$GITHUB_WORKSPACE/ap8220/libwrt-6.6-ap8220.sh"
+              "$GITHUB_WORKSPACE/ap8220/libwrt-6.6-ap8220.sh" "$DEVICE"
             else
-              echo "警告：未找到 libwrt-ap8220.sh，AP8220 设备支持可能不完整"
+              echo "警告：未找到 libwrt-6.6-ap8220.sh，AP8220 设备支持可能不完整"
             fi
             ;;
         esac
