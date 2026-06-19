@@ -10,20 +10,80 @@ echo "当前目录: $(pwd)"
 IMAGE_MK="target/linux/qualcommax/image/ipq60xx.mk"
 BOARD_DIR="target/linux/qualcommax/ipq60xx/base-files/etc/board.d"
 UPGRADE_DIR="target/linux/qualcommax/ipq60xx/base-files/lib/upgrade"
-DTS_DIR="target/linux/qualcommax/dts"
 IPQWIFI_MK="package/firmware/ipq-wifi/Makefile"
 
 
-echo "========================== 创建 ZN-M2 DTS =========================="
-mkdir -p "$DTS_DIR"
+echo "========================== 拷贝 DTS 文件 =========================="
+# 定义源码根目录（假设脚本在源码根目录执行）
+OPENWRT_PATH="${OPENWRT_PATH:-$(pwd)}"
 
+echo "源码路径: $OPENWRT_PATH"
 
+# 1. 拷贝 ipq6018-common.dtsi.txt 到目标目录
+SRC_FILE1="$OPENWRT_PATH/m2/ipq6018-common.dtsi"
+DEST_DIR1="$OPENWRT_PATH/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom"
+DEST_FILE1="$DEST_DIR1/ipq6018-common.dtsi"
 
-echo "========================== 创建 DTS 编译替身（防撞车） =========================="
-# 1. 满足你显式指定的正确名称（规范化）
-cp "$DTS_DIR/ipq6018-zn-m2.dts" "$DTS_DIR/ipq6000-zn-m2.dts"
-# 2. 补齐上游源码里写错/缺失的 m2 文件，彻底解决 cc1: fatal error 报错
-cp "$DTS_DIR/ipq6018-zn-m2.dts" "$DTS_DIR/ipq6000-m2.dts"
+if [ -f "$SRC_FILE1" ]; then
+    echo ""
+    echo "[1/3] 拷贝 ipq6018-common.dtsi..."
+    mkdir -p "$DEST_DIR1"
+    cp -v "$SRC_FILE1" "$DEST_FILE1"
+    echo "  完成: $DEST_FILE1"
+else
+    echo ""
+    echo "[1/3] 警告: 源文件不存在: $SRC_FILE1"
+    echo "  请确保 ipq6018-common.dtsi.txt 在项目根目录"
+fi
+
+# 2. 拷贝 ipq6000-m2.dts
+SRC_FILE2="$OPENWRT_PATH/m2/ipq6000-m2.dts"
+DEST_DIR2="$OPENWRT_PATH/target/linux/qualcommax/dts"
+DEST_FILE2="$DEST_DIR2/ipq6000-m2.dts"
+
+if [ -f "$SRC_FILE2" ]; then
+    echo ""
+    echo "[2/3] 拷贝 ipq6000-m2.dts..."
+    mkdir -p "$DEST_DIR2"
+    cp -v "$SRC_FILE2" "$DEST_FILE2"
+    echo "  完成: $DEST_FILE2"
+else
+    echo ""
+    echo "[2/3] 警告: 源文件不存在: $SRC_FILE2"
+    echo "  请确保 ipq6000-m2.dts 在项目根目录"
+fi
+
+# 3. 拷贝 ipq6000-cmiot.dtsi
+SRC_FILE3="$OPENWRT_PATH/m2/ipq6000-cmiot.dtsi"
+DEST_FILE3="$DEST_DIR2/ipq6000-cmiot.dtsi"
+
+if [ -f "$SRC_FILE3" ]; then
+    echo ""
+    echo "[3/3] 拷贝 ipq6000-cmiot.dtsi..."
+    mkdir -p "$DEST_DIR2"
+    cp -v "$SRC_FILE3" "$DEST_FILE3"
+    echo "  完成: $DEST_FILE3"
+else
+    echo ""
+    echo "[3/3] 警告: 源文件不存在: $SRC_FILE3"
+    echo "  请确保 ipq6000-cmiot.dtsi 在项目根目录"
+fi
+
+echo ""
+echo "====================================="
+echo "DTS 文件拷贝完成"
+echo "====================================="
+
+# 验证文件是否存在
+echo ""
+echo "验证目标文件:"
+for f in "$DEST_FILE1" "$DEST_FILE2" "$DEST_FILE3"; do
+    if [ -f "$f" ]; then
+        echo "  ✓ $(basename $f)"
+    else
+        echo "  ✗ $(basename $f) - 不存在"
+    fi
+done
 
 echo "========================== 修改 ipq60xx.mk =========================="
 if [ -f "$IMAGE_MK" ] && ! grep -q "define Device/zn_m2" "$IMAGE_MK" 2>/dev/null; then
