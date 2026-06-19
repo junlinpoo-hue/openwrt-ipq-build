@@ -130,7 +130,7 @@ jobs:
             if [ -f "$GITHUB_WORKSPACE/m2/libwrt-6.12-m2.sh" ]; then
               echo "========================== 添加 ZN-M2 设备支持 =========================="
               chmod +x "$GITHUB_WORKSPACE/m2/libwrt-6.12-m2.sh"
-              "$GITHUB_WORKSPACE/libwrt-6.12-m2.sh" "$DEVICE"
+              "$GITHUB_WORKSPACE/m2/libwrt-6.12-m2.sh" "$DEVICE"
             else
               echo "警告：未找到 libwrt-6.12-m2.sh，ZN-M2 设备支持可能不完整"
             fi
