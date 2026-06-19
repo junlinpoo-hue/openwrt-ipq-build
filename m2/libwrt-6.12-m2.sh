@@ -12,28 +12,21 @@ BOARD_DIR="target/linux/qualcommax/ipq60xx/base-files/etc/board.d"
 UPGRADE_DIR="target/linux/qualcommax/ipq60xx/base-files/lib/upgrade"
 IPQWIFI_MK="package/firmware/ipq-wifi/Makefile"
 
-
 echo "========================== 拷贝 DTS 文件 =========================="
-# 定义源码根目录（假设脚本在源码根目录执行）
 OPENWRT_PATH="${OPENWRT_PATH:-$(pwd)}"
-
 echo "源码路径: $OPENWRT_PATH"
 
-# 1. 拷贝 ipq6018-common.dtsi.txt 到目标目录
+# 1. 拷贝 ipq6018-common.dtsi
 SRC_FILE1="$OPENWRT_PATH/m2/ipq6018-common.dtsi"
 DEST_DIR1="$OPENWRT_PATH/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom"
 DEST_FILE1="$DEST_DIR1/ipq6018-common.dtsi"
 
 if [ -f "$SRC_FILE1" ]; then
-    echo ""
     echo "[1/3] 拷贝 ipq6018-common.dtsi..."
     mkdir -p "$DEST_DIR1"
     cp -v "$SRC_FILE1" "$DEST_FILE1"
-    echo "  完成: $DEST_FILE1"
 else
-    echo ""
     echo "[1/3] 警告: 源文件不存在: $SRC_FILE1"
-    echo "  请确保 ipq6018-common.dtsi.txt 在项目根目录"
 fi
 
 # 2. 拷贝 ipq6000-m2.dts
@@ -42,15 +35,11 @@ DEST_DIR2="$OPENWRT_PATH/target/linux/qualcommax/dts"
 DEST_FILE2="$DEST_DIR2/ipq6000-m2.dts"
 
 if [ -f "$SRC_FILE2" ]; then
-    echo ""
     echo "[2/3] 拷贝 ipq6000-m2.dts..."
     mkdir -p "$DEST_DIR2"
     cp -v "$SRC_FILE2" "$DEST_FILE2"
-    echo "  完成: $DEST_FILE2"
 else
-    echo ""
     echo "[2/3] 警告: 源文件不存在: $SRC_FILE2"
-    echo "  请确保 ipq6000-m2.dts 在项目根目录"
 fi
 
 # 3. 拷贝 ipq6000-cmiot.dtsi
@@ -58,23 +47,12 @@ SRC_FILE3="$OPENWRT_PATH/m2/ipq6000-cmiot.dtsi"
 DEST_FILE3="$DEST_DIR2/ipq6000-cmiot.dtsi"
 
 if [ -f "$SRC_FILE3" ]; then
-    echo ""
     echo "[3/3] 拷贝 ipq6000-cmiot.dtsi..."
-    mkdir -p "$DEST_DIR2"
     cp -v "$SRC_FILE3" "$DEST_FILE3"
-    echo "  完成: $DEST_FILE3"
 else
-    echo ""
     echo "[3/3] 警告: 源文件不存在: $SRC_FILE3"
-    echo "  请确保 ipq6000-cmiot.dtsi 在项目根目录"
 fi
 
-echo ""
-echo "====================================="
-echo "DTS 文件拷贝完成"
-echo "====================================="
-
-# 验证文件是否存在
 echo ""
 echo "验证目标文件:"
 for f in "$DEST_FILE1" "$DEST_FILE2" "$DEST_FILE3"; do
@@ -117,7 +95,6 @@ fi
 
 echo "========================== 修改 01_leds =========================="
 if [ -f "$BOARD_DIR/01_leds" ] && ! grep -q "zn,m2)" "$BOARD_DIR/01_leds"; then
-    # 在 esac 前插入 zn,m2 配置
     sed -i '/^esac$/i\
 zn,m2)\
 	ucidef_set_led_netdev "wan" "WAN" "blue:wan" "wan"\
@@ -138,14 +115,28 @@ else
 fi
 
 echo "========================== 修改 Makefile  =========================="
-# 1. 在 ALLWIFIBOARDS 列表中，zyxel_scr50axe 行后面添加 zn_m2 
-sed -i 's/^[[:space:]]*zyxel_scr50axe[[:space:]]*$/    zyxel_scr50axe \\/' "$IPQWIFI_MK"
-sed -i '/^[[:space:]]*zyxel_scr50axe \\$/a\    zn_m2' "$IPQWIFI_MK"
 
-# 2. 在 zyxel_scr50axe 的 generate 调用后面添加 zn_m2 的 generate 调用
-sed -i '/$(eval $(call generate-ipq-wifi-package,zyxel_scr50axe,Zyxel SCR50AXE))/a\
+# 检查 zyxel_scr50axe 行是否已有反斜杠
+if grep -q "zyxel_scr50axe \\\\$" "$IPQWIFI_MK"; then
+    # 已有反斜杠，直接添加 zn_m2
+    if ! grep -q "zn_m2" "$IPQWIFI_MK"; then
+        sed -i '/^[[:space:]]*zyxel_scr50axe \\$/a\    zn_m2' "$IPQWIFI_MK"
+        echo "已添加 zn_m2 到 ALLWIFIBOARDS"
+    fi
+else
+    # 没有反斜杠，先添加再插入
+    sed -i 's/^[[:space:]]*zyxel_scr50axe[[:space:]]*$/    zyxel_scr50axe \\/' "$IPQWIFI_MK"
+    sed -i '/^[[:space:]]*zyxel_scr50axe \\$/a\    zn_m2' "$IPQWIFI_MK"
+    echo "已添加 zn_m2 到 ALLWIFIBOARDS"
+fi
+
+# 添加 generate 调用（如果不存在）
+if ! grep -q "generate-ipq-wifi-package,zn_m2" "$IPQWIFI_MK"; then
+    sed -i '/$(eval $(call generate-ipq-wifi-package,zyxel_scr50axe,Zyxel SCR50AXE))/a\
 $(eval $(call generate-ipq-wifi-package,zn_m2,ZN M2))' "$IPQWIFI_MK"
-
-echo "ZN-M2 added to ipq-wifi Makefile"
+    echo "已添加 generate-ipq-wifi-package for zn_m2"
+else
+    echo "generate-ipq-wifi-package for zn_m2 已存在"
+fi
 
 echo "========================== libwrt-6.12-m2.sh 完成 =========================="
