@@ -35,12 +35,10 @@ fi
 
 # 2. 拷贝 ipq6000-m2.dts
 SRC_FILE2="$OPENWRT_ROOT/m2/ipq6000-m2.dts"
-DEST_DIR2="$OPENWRT_PATH/target/linux/qualcommax/dts"
-DEST_FILE2="$DEST_DIR2/ipq6000-m2.dts"
+DEST_FILE2="$DEST_DIR1/ipq6000-m2.dts"
 
 if [ -f "$SRC_FILE2" ]; then
     echo "[2/3] 拷贝 ipq6000-m2.dts..."
-    mkdir -p "$DEST_DIR2"
     cp -v "$SRC_FILE2" "$DEST_FILE2"
     echo "  完成: $DEST_FILE2"
 else
@@ -49,7 +47,7 @@ fi
 
 # 3. 拷贝 ipq6000-cmiot.dtsi
 SRC_FILE3="$OPENWRT_ROOT/m2/ipq6000-cmiot.dtsi"
-DEST_FILE3="$DEST_DIR2/ipq6000-cmiot.dtsi"
+DEST_FILE3="$DEST_DIR1/ipq6000-cmiot.dtsi"
 
 if [ -f "$SRC_FILE3" ]; then
     echo "[3/3] 拷贝 ipq6000-cmiot.dtsi..."
