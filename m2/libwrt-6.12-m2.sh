@@ -4,20 +4,23 @@
 set -e
 
 echo "========================== libwrt-6.12-m2.sh 开始 =========================="
-echo "当前目录: $(pwd)"
+# 使用 GITHUB_WORKSPACE 作为根目录（云编译环境）
+OPENWRT_ROOT="${GITHUB_WORKSPACE:-$(dirname $(pwd))}"
+OPENWRT_PATH="$OPENWRT_ROOT/openwrt"
+
+echo "项目根目录: $OPENWRT_ROOT"
+echo "OpenWrt 源码路径: $OPENWRT_PATH"
 
 # 6.12 路径
-IMAGE_MK="target/linux/qualcommax/image/ipq60xx.mk"
-BOARD_DIR="target/linux/qualcommax/ipq60xx/base-files/etc/board.d"
-UPGRADE_DIR="target/linux/qualcommax/ipq60xx/base-files/lib/upgrade"
-IPQWIFI_MK="package/firmware/ipq-wifi/Makefile"
+IMAGE_MK="$OPENWRT_PATH/target/linux/qualcommax/image/ipq60xx.mk"
+BOARD_DIR="$OPENWRT_PATH/target/linux/qualcommax/ipq60xx/base-files/etc/board.d"
+UPGRADE_DIR="$OPENWRT_PATH/target/linux/qualcommax/ipq60xx/base-files/lib/upgrade"
+IPQWIFI_MK="$OPENWRT_PATH/package/firmware/ipq-wifi/Makefile"
 
 echo "========================== 拷贝 DTS 文件 =========================="
-OPENWRT_PATH="${OPENWRT_PATH:-$(pwd)}"
-echo "源码路径: $OPENWRT_PATH"
 
 # 1. 拷贝 ipq6018-common.dtsi
-SRC_FILE1="$OPENWRT_PATH/m2/ipq6018-common.dtsi"
+SRC_FILE1="$OPENWRT_ROOT/m2/ipq6018-common.dtsi"
 DEST_DIR1="$OPENWRT_PATH/target/linux/qualcommax/files/arch/arm64/boot/dts/qcom"
 DEST_FILE1="$DEST_DIR1/ipq6018-common.dtsi"
 
@@ -25,12 +28,13 @@ if [ -f "$SRC_FILE1" ]; then
     echo "[1/3] 拷贝 ipq6018-common.dtsi..."
     mkdir -p "$DEST_DIR1"
     cp -v "$SRC_FILE1" "$DEST_FILE1"
+    echo "  完成: $DEST_FILE1"
 else
     echo "[1/3] 警告: 源文件不存在: $SRC_FILE1"
 fi
 
 # 2. 拷贝 ipq6000-m2.dts
-SRC_FILE2="$OPENWRT_PATH/m2/ipq6000-m2.dts"
+SRC_FILE2="$OPENWRT_ROOT/m2/ipq6000-m2.dts"
 DEST_DIR2="$OPENWRT_PATH/target/linux/qualcommax/dts"
 DEST_FILE2="$DEST_DIR2/ipq6000-m2.dts"
 
@@ -38,17 +42,19 @@ if [ -f "$SRC_FILE2" ]; then
     echo "[2/3] 拷贝 ipq6000-m2.dts..."
     mkdir -p "$DEST_DIR2"
     cp -v "$SRC_FILE2" "$DEST_FILE2"
+    echo "  完成: $DEST_FILE2"
 else
     echo "[2/3] 警告: 源文件不存在: $SRC_FILE2"
 fi
 
 # 3. 拷贝 ipq6000-cmiot.dtsi
-SRC_FILE3="$OPENWRT_PATH/m2/ipq6000-cmiot.dtsi"
+SRC_FILE3="$OPENWRT_ROOT/m2/ipq6000-cmiot.dtsi"
 DEST_FILE3="$DEST_DIR2/ipq6000-cmiot.dtsi"
 
 if [ -f "$SRC_FILE3" ]; then
     echo "[3/3] 拷贝 ipq6000-cmiot.dtsi..."
     cp -v "$SRC_FILE3" "$DEST_FILE3"
+    echo "  完成: $DEST_FILE3"
 else
     echo "[3/3] 警告: 源文件不存在: $SRC_FILE3"
 fi
@@ -62,7 +68,6 @@ for f in "$DEST_FILE1" "$DEST_FILE2" "$DEST_FILE3"; do
         echo "  ✗ $(basename $f) - 不存在"
     fi
 done
-
 echo "========================== 修改 ipq60xx.mk =========================="
 if [ -f "$IMAGE_MK" ] && ! grep -q "define Device/zn_m2" "$IMAGE_MK" 2>/dev/null; then
     cat >> "$IMAGE_MK" << 'MK_EOF'
