@@ -11,7 +11,7 @@ OPENWRT_PATH="$OPENWRT_ROOT/openwrt"
 echo "项目根目录: $OPENWRT_ROOT"
 echo "OpenWrt 源码路径: $OPENWRT_PATH"
 
-# 6.12 路径
+# 6.6 路径
 IMAGE_MK="$OPENWRT_PATH/target/linux/qualcommax/image/ipq60xx.mk"
 BOARD_DIR="$OPENWRT_PATH/target/linux/qualcommax/ipq60xx/base-files/etc/board.d"
 UPGRADE_DIR="$OPENWRT_PATH/target/linux/qualcommax/ipq60xx/base-files/lib/upgrade"
