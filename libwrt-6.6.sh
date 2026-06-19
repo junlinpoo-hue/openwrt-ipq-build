@@ -26,3 +26,11 @@ for file in "${PATCH_FILES[@]}"; do
 done
 
 echo "========================= 冲突补丁清理完毕 ========================="
+
+# 在编译前修补 qca-nss-ecm
+ECM_DIR="feeds/nss_packages/qca-nss-ecm"
+if [ -d "$ECM_DIR" ]; then
+    # 禁用 bonding notifier 编译
+    sed -i '/ecm_bond_notifier/d' "$ECM_DIR/Makefile"
+    sed -i 's/ecm_bond_notifier.o//' "$ECM_DIR/frontends/cmn/Makefile"
+fi
