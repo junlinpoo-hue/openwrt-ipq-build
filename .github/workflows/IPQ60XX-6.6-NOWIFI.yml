@@ -67,11 +67,11 @@ jobs:
         # 根据设备设置配置文件和标签
         case "$DEVICE" in
           zn_m2)
-            CONFIG_FILE="configs/ipq60xx-6.12-nowifi.config"
+            CONFIG_FILE="configs/ipq60xx-6.6-nowifi.config"
             FIRMWARE_TAG="IPQ60XX-ZN-M2-NOWIFI"
             ;;
           aliyun_ap8220)
-            CONFIG_FILE="configs/ipq807x-6.12-nowifi.config"
+            CONFIG_FILE="configs/ipq807x-6.6-nowifi.config"
             FIRMWARE_TAG="IPQ807X-ALIYUN-AP8220-NOWIFI"
             ;;
           *)
