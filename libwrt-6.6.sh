@@ -6,6 +6,12 @@ echo "========================================="
 echo "Remove incompatible bonding patch"
 echo "========================================="
 
+PATCH_FILE="target/linux/qualcommax/patches-6.6/0600-3-qca-nss-ecm-support-net-bonding.patch"
+if [ -f "$PATCH_FILE" ]; then
+    rm -f "$PATCH_FILE"
+    echo "[OK] Removed: $PATCH_FILE"
+fi
+
 PATCH_FILE="target/linux/qualcommax/patches-6.6/0600-4-qca-nss-ecm-support-net-bonding-over-LAG-interface.patch"
 
 if [ -f "$PATCH_FILE" ]; then
