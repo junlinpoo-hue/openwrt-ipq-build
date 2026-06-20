@@ -126,7 +126,7 @@
 &dp1 {
 	status = "okay";
 	phy-handle = <&qca8075_0>;
-	label = "lan3";
+	label = "lan1";
 };
 
 &dp2 {
@@ -138,7 +138,7 @@
 &dp4 {
 	status = "okay";
 	phy-handle = <&qca8075_3>;
-	label = "lan1";
+	label = "lan3";
 };
 
 &dp5 {
