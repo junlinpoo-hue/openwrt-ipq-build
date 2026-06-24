@@ -16,7 +16,7 @@ on:
       device:
         description: '目标设备'
         required: true
-        default: 'zn_m2'
+        default: 'aliyun_ap8220'
         type: choice
         options:
           - zn_m2
