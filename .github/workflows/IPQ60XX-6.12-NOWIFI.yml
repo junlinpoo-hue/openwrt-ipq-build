@@ -170,7 +170,6 @@ jobs:
 
         # 关键：编译完每个包自动清理构建目录，防止磁盘占满
         echo "CONFIG_AUTOREMOVE=y" >> .config
-        echo "CONFIG_USE_MKLIBS=y" >> .config
         
         make defconfig V=s
         
