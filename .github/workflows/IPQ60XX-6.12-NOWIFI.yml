@@ -53,9 +53,28 @@ jobs:
     - name: Maximize Build Space
       uses: easimon/maximize-build-space@master
       with:
-        swap-size-mb: 4096
+        swap-size-mb: 0
         temp-reserve-mb: 100
-        root-reserve-mb: 2048
+        root-reserve-mb: 1024
+
+    - name: Extra disk cleanup
+      run: |
+        echo "=== Before cleanup ==="
+        df -hT
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/local/.ghcup
+        sudo rm -rf /usr/local/share/powershell
+        sudo rm -rf /usr/local/share/chromium
+        sudo rm -rf /usr/local/lib/node_modules
+        sudo rm -rf /opt/hostedtoolcache
+        sudo apt-get remove -y '^llvm-.*' '^libllvm.*' '^mongodb-.*' '^mysql-.*' '^postgresql-.*' azure-cli google-cloud-sdk google-chrome-stable firefox powershell mono-devel libgl1-mesa-dri 2>/dev/null || true
+        sudo apt-get autoremove -y 2>/dev/null || true
+        sudo apt-get clean 2>/dev/null || true
+        sudo docker image prune -a -f 2>/dev/null || true
+        echo "=== After cleanup ==="
+        df -hT
 
     - name: Checkout
       uses: actions/checkout@main
@@ -148,6 +167,10 @@ jobs:
           echo "错误：找不到配置文件 $CONFIG_FILE"
           exit 1
         fi
+
+        # 关键：编译完每个包自动清理构建目录，防止磁盘占满
+        echo "CONFIG_AUTOREMOVE=y" >> .config
+        echo "CONFIG_USE_MKLIBS=y" >> .config
         
         make defconfig V=s
         
